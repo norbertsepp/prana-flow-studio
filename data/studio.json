@@ -1,0 +1,39 @@
+{
+  "studio_name": "Prana Flow Yoga Studio",
+  "rooms": [
+    {
+      "id": "lotus-room",
+      "name": "Lotus Room",
+      "capacity": 25,
+      "status": "active"
+    },
+    {
+      "id": "shanti-hall",
+      "name": "Shanti Hall",
+      "capacity": 40,
+      "status": "maintenance"
+    }
+  ],
+  "instructors": [
+    {"id": "maya", "name": "Maya Lin", "specialty": "Vinyasa Flow"},
+    {"id": "arun", "name": "Arun Patel", "specialty": "Ashtanga"}
+  ],
+  "schedule": [
+    {
+      "id": "class-101",
+      "title": "Sunrise Vinyasa",
+      "room_id": "lotus-room",
+      "instructor_id": "maya",
+      "time": "07:00 AM",
+      "registered": 18
+    },
+    {
+      "id": "class-102",
+      "title": "Pranayama & Meditation",
+      "room_id": "lotus-room",
+      "instructor_id": "arun",
+      "time": "09:00 AM",
+      "registered": 12
+    }
+  ]
+}

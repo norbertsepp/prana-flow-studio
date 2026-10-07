@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ studio_name }} - Daily Operations</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 2rem; background: #fdfbf7; color: #2d3748; }
+    h1 { color: #2c5282; margin-bottom: 0.5rem; }
+    .grid { display: grid; grid-template-columns: 1fr 2fr; gap: 2rem; margin-top: 1.5rem; }
+    .card { background: white; padding: 1.25rem; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    .badge { display: inline-block; padding: 0.25rem 0.6rem; border-radius: 9999px; font-size: 0.75rem; font-weight: bold; text-transform: uppercase; }
+    .badge-active { background: #c6f6d5; color: #22543d; }
+    .badge-maintenance { background: #fed7d7; color: #742a2a; }
+    table { width: 100%; border-collapse: collapse; margin-top: 0.5rem; }
+    th, td { text-align: left; padding: 0.75rem; border-bottom: 1px solid #e2e8f0; }
+  </style>
+</head>
+<body>
+  <h1>{{ studio_name }}</h1>
+  <p>Live Studio Schedule & Operational Room Status</p>
+
+  <div class="grid">
+    <div class="card">
+      <h2>Rooms</h2>
+      <ul>
+        {% for room in rooms %}
+          <li>
+            <strong>{{ room.name }}</strong> (Max: {{ room.capacity }}) - 
+            <span class="badge badge-{{ room.status }}">{{ room.status }}</span>
+          </li>
+        {% endfor %}
+      </ul>
+    </div>
+
+    <div class="card">
+      <h2>Today's Schedule</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Time</th>
+            <th>Class</th>
+            <th>Room</th>
+            <th>Bookings</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for session in schedule %}
+            <tr>
+              <td>{{ session.time }}</td>
+              <td><strong>{{ session.title }}</strong></td>
+              <td>{{ session.room_name }}</td>
+              <td>{{ session.registered }} attendees</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</body>
+</html>
