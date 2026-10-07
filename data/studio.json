@@ -5,13 +5,13 @@
       "id": "lotus-room",
       "name": "Lotus Room",
       "capacity": 25,
-      "status": "active"
+      "status": "maintenance"
     },
     {
       "id": "shanti-hall",
       "name": "Shanti Hall",
       "capacity": 40,
-      "status": "maintenance"
+      "status": "active"
     }
   ],
   "instructors": [
