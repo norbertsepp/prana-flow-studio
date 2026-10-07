@@ -284,9 +284,8 @@ To enforce this, pipelines implement two layers of automated gates:
 ```
 
 * **Static Analysis & Linting (Ruff)**: Fast, AST-level analysis written in Rust that detects syntax bugs, unused imports, anti-patterns, and style violations across codebases.
-*  **Domain Invariant Testing (Pytest)**: Tests that validate business rules and data models rather than code mechanics.
+* **Domain Invariant Testing (Pytest)**: Tests that validate business rules and data models rather than code mechanics.
   In our yoga studio, if an administrator marks a room as `status: "maintenance"` while classes are scheduled in it, the build must fail immediately with actionable feedback.
-
 
 ## 2. Steps to Complete the Chapter
 
@@ -315,17 +314,15 @@ ruff format --check .
 pytest -v
 ```
 
-
 ## 4. Case-Specific Tasks
-
 
 * **Task 2.1**: Create` pyproject.toml` in your project root with Ruff configuration enabling core (`E, F`), bugbear (`B`), and import sorting (`I`).
 * **Task 2.2:** Write `tests/test_studio.py` verifying two critical business rules:
 
   * No class can be assigned to a room currently set to ` maintenance`.
   * Registered attendees for a class cannot exceed the room's maximum capacity.
-* **Task 2.3**: Run `ruff check .` and `ruff format .` to format all code.
-* **Task 2.4**: Run `pytes` to confirm all validation checks pass.
+* **Task 2.3**: Run `ruff check .` and `ruff format .` to format all code. (use the `--fix` option if needed)
+* **Task 2.4**: Run `pytest` to confirm all validation checks pass.
 
 ## 5. Solutions
 
@@ -344,7 +341,6 @@ ignore = []
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 ```
-
 
 tests/test_studio.py
 
@@ -395,3 +391,230 @@ pytest -v
 ```
 
 All tests should pass.
+
+# Chapter 3: Workflow Anatomy & Automated Quality Gates
+
+## 1. Theoretical Introduction
+
+A **GitHub Actions Workflow** is an automated, event-driven procedure defined as a YAML file inside the `.github/workflows/` directory of your repository.
+
+```
+┌────────────────────────────────────────────────────────┐
+│ Workflow: ci.yml                                       │
+│ Trigger: push / pull_request on branch 'main'          │
+│                                                        │
+│  Job: quality-check (runs-on: ubuntu-latest)           │
+│  ├── Step 1: actions/checkout@v4                       │
+│  ├── Step 2: actions/setup-python@v5                   │
+│  ├── Step 3: Install dependencies (ruff, pytest)       │
+│  ├── Step 4: Run Ruff linter                           │
+│  └── Step 5: Run Pytest test suite                     │
+└────────────────────────────────────────────────────────┘
+```
+
+#### Core Components of the YAML Schema:
+
+* **`name`** : Descriptive display identifier in the GitHub Actions dashboard.
+* **`on`** : Event triggers (`push`, `pull_request`, `workflow_dispatch`, etc.).
+* **`jobs`** : Independent units of work running on separate virtual machines. Jobs execute in parallel by default unless explicit dependency chains (`needs:`) are declared.
+* **`runs-on`** : Target OS image (e.g., `ubuntu-latest`, `windows-latest`, `macos-latest`).
+* **`steps`** : Linear sequence of tasks within a job. Can execute shell commands (`run:`) or reusable marketplace actions (`uses:`).
+
+
+## 2. Steps to Complete the Chapter
+
+1. Create the workflow directory hierarchy: `.github/workflows/.`
+2. Construct `ci.yml` targeting `push` and `pull_request` triggers on `main`.
+3. Add steps to check out code, install the Python environment, run Ruff, and execute Pytest.
+4. Commit and push changes to GitHub to watch the workflow execute in the Actions tab.
+
+## 3. General Exercises
+
+1. Review YAML syntax rules:
+   1. Two spaces for indentation (no tabs).
+   2. Key-value pairs (`key: value`).
+   3. Array items denoted by `- `.
+2. Explore GitHub Actions step naming: Every step should have a clear, descriptive `name:` property to make debugging failed runs intuitive.
+
+## 4. Case-Specific Tasks
+
+* **Task 3.1:** Create `.github/workflows/ci.yml`.
+* **Task 3.2:** Define a job `lint-and-test` targeting `ubuntu-latest`.
+* **Task 3.3:** Use `actions/checkout@v4` and `actions/setup-python@v5` with Python version `3.11` and pip caching enabled (`cache: 'pip'`).
+* **Task 3.4:** Add steps that run `ruff check .`, `ruff format --check .`, and `pytest`.
+* **Task 3.5:** Commit all project files to Git, link your remote GitHub repository, push to `main`, and inspect the Actions tab.
+
+## 5. Solutions
+
+Update the folder and file structure in the local repo to include the ci.yml file
+
+```Shell
+
+.github/workflows/ci.yml
+
+YAML
+name: CI Quality Gate
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install ruff pytest jinja2
+
+      - name: Run Ruff linter
+        run: ruff check .
+
+      - name: Check code formatting with Ruff
+        run: ruff format --check .
+
+      - name: Run Pytest domain safety checks
+        run: pytest -v
+```
+
+**Push to GitHub:**
+
+```Shell
+git add .
+git commit -m "feat: setup studio generator, ruff config, tests and CI workflow"
+git remote add origin https://github.com/<YOUR-USERNAME>/prana-flow-studio.git
+git push -u origin main
+```
+
+Navigate to `[https://github.com/](https://github.com/)<USER_NAME>/prana-flow-studio/actions` to monitor the pipeline execution.
+
+# Chapter 4: Artifact Compilation in the Cloud
+
+## 1. Theoretical introduction
+
+CI pipelines do more than test; they also compile, build, and package software. In static site generation, this means executing `python build.py` directly inside the cloud runner to produce the production-ready `_site/` directory.
+
+However, jobs in GitHub Actions run inside ephemeral virtual machines. Once a job finishes, its filesystem is destroyed. To preserve compiled build outputs, workflows use  **Artifacts** :
+
+```Shell
+[ Job: Build ] ──> Generates _site/ ──> actions/upload-pages-artifact ──> GitHub Cloud Storage
+                                                                              │
+[ Job: Deploy ] <────────────────── Download Artifact ────────────────────────┘
+```
+
+By decoupling the **build** step from the **deploy** step, you ensure that if tests fail or the build crashes, no deployment occurs.
+
+## 2. Steps to Complete the Chapter
+
+1. Separate the workflow into distinct, sequential stages: a quality gate job followed by a build job.
+2. Link the build job using the `needs:` keyword so it only runs if the quality checks pass.
+3. Execute `python build.py` to compile the site inside the cloud runner.
+4. Upload the resulting `_site` directory using GitHub's specialized `actions/upload-pages-artifact@v3`.
+
+## 3. General Exercises
+
+1. Understand job dependency syntax:
+
+```YAML
+job-a:
+  runs-on: ubuntu-latest
+  # ...
+job-b:
+  needs: job-a
+  runs-on: ubuntu-latest
+  # runs only if job-a succeeds
+```
+
+2. Understand what `actions/upload-pages-artifact` does: it packages a specified directory into a compressed `github-pages` tarball artifactz specifically prepared for GitHub Pages hosting.
+
+## 4. Case-Specific Tasks
+
+* **Task 4.1:** Update `.github/workflows/ci.yml` (renaming it or structuring it as `deploy.yml`) to add a second job named `build`.
+* **Task 4.2:** Establish a dependency using `needs: lint-and-test`.
+* **Task 4.3:** Add steps to check out code, set up Python, install `jinja2`, and run `python build.py`.
+* **Task 4.4:** Use `actions/upload-pages-artifact@v3` with `path: '_site'` to store the generated site.
+
+## 5. Solutions
+
+**Updated** `.github/workflows/deploy.yml`
+
+*(Replace `ci.yml` with `deploy.yml`)*
+
+```YAML
+name: CI & Build Pipeline
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install test tools
+        run: |
+          python -m pip install --upgrade pip
+          pip install ruff pytest jinja2
+
+      - name: Run Ruff checks
+        run: |
+          ruff check .
+          ruff format --check .
+
+      - name: Run Pytest
+        run: pytest -v
+
+  build:
+    needs: lint-and-test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install generator dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install jinja2
+
+      - name: Compile Studio HTML
+        run: python build.py
+
+      - name: Upload Pages Artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: "_site"
+```
