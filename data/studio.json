@@ -5,7 +5,7 @@
       "id": "lotus-room",
       "name": "Lotus Room",
       "capacity": 25,
-      "status": "maintenance"
+      "status": "active"
     },
     {
       "id": "shanti-hall",
