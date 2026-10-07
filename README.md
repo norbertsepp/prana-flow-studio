@@ -1,6 +1,88 @@
-python build.pytemplates/index.html
+name: CI/CD Pipeline - Prana Flow Studio
 
-## CI/CD Mastery with GitHub Actions: Prana Flow Yoga Studio
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+# Permissions required for GitHub Pages deployment
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install ruff pytest jinja2
+
+      - name: Run Ruff Linter
+        run: ruff check .
+
+      - name: Check Code Formatting
+        run: ruff format --check .
+
+      - name: Run Domain Validation Tests
+        run: pytest -v
+
+  build:
+    needs: lint-and-test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install build dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install jinja2
+
+      - name: Build static site
+        run: python build.py
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: "_site"
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+# CI/CD Mastery with GitHub Actions: Prana Flow Yoga Studio
 
 Topic: Continuous Integration & Continuous Deployment (CI/CD) with GitHub Actions
 
@@ -8,9 +90,9 @@ Target Level: Practical proficiency in workflow orchestration, automated quality
 
 Structure: 5 Chapters (8–10 minutes per chapter)
 
-## Course Outline & Setup
+# Course Outline & Setup
 
-### Course Outline
+## Course Outline
 
 1. **Chapter 1: The Studio Foundation & Build Engine** — Project layout, operational data schema (rooms, schedules, maintenance), and a Python/Jinja2 static generator.
 2. **Chapter 2: Code Quality & CI Safety Nets** — Linting and formatting with Ruff, plus automated domain validations using Pytest (detecting maintenance conflicts and room capacity limits).
@@ -18,21 +100,19 @@ Structure: 5 Chapters (8–10 minutes per chapter)
 4. **Chapter 4: Artifact Compilation in the Cloud** — Running the Python generator inside the runner virtual environment and publishing build artifacts.
 5. **Chapter 5: Continuous Deployment to GitHub Pages** — Environment permissions, zero-downtime deployment actions, and testing a live maintenance update rollout.
 
-### Exercise Environment & Setup Instructions
+## Exercise Environment & Setup Instructions
 
-#### Prerequisites
+### Prerequisites
 
 * Python 3.10+ installed locally.
 * Git installed and configured.
 * A GitHub account with a new, empty public repository named `prana-flow-studio`.
 
-#### Local Directory & Virtual Environment Setup
+### Local Directory & Virtual Environment Setup
 
 Run the following commands in your terminal:
 
 ```Shell
-bash
-
 mkdir prana-flow-studio
 cd prana-flow-studio
 python3 -m venv .venv
@@ -51,7 +131,6 @@ pip freeze > requirements.txt
 Initialize your Git repository:
 
 ```Shell
-Bash
 git init
 git branch -M main
 ```
@@ -59,7 +138,6 @@ git branch -M main
 Create a `.gitignore` file:
 
 ```Shell
-Code snippet
 .venv/
 __pycache__/
 .pytest_cache/
@@ -68,13 +146,13 @@ _site/
 *.pyc
 ```
 
-## Chapter 1: The Studio Foundation & Build Engine
+# Chapter 1: The Studio Foundation & Build Engine
 
-1. ### Theoretical Introduction
+## 1.1. Theoretical Introduction
 
-   At the core of automated CI/CD pipelines is a deterministic build step: taking raw structured data or source templates and compiling them into distribution-ready assets.
+  At the core of automated CI/CD pipelines is a deterministic build step: taking raw structured data or source templates and compiling them into distribution-ready assets.
 
-In modern static site generation (SSG) architectures, business data is maintained in clean formats like JSON or YAML. A build script parses that state, renders templates, and outputs flat static assets (`.html`, `.css`) into a target directory (often ` _site` or `dist`). Because static assets require no server-side execution runtime, they provide low-latency delivery, zero attack surface for code injection, and direct hosting on platforms like GitHub Pages.
+In modern static site generation (SSG) architectures, business data is maintained in clean formats like JSON or YAML. A build script parses that state, renders templates, and outputs flat static assets (`.html`, `.css`) into a target directory (often `_site` or `dist`). Because static assets require no server-side execution runtime, they provide low-latency delivery, zero attack surface for code injection, and direct hosting on platforms like GitHub Pages.
 
 ```Shell
 data/studio.json  ──┐
@@ -82,19 +160,16 @@ data/studio.json  ──┐
 templates/page.html ┘
 ```
 
-2. ## Steps to Complete the Chapter
+## 1.2. Steps to Complete the Chapter
 
-   Define the data store (data/studio.json) containing room inventory, operational statuses (active, maintenance), classes, and instructors.
+* Define the data store (data/studio.json) containing room inventory, operational statuses (active, maintenance), classes, and instructors.
+* Build an HTML dashboard template using Jinja2 syntax.
+* Write build.py to process the JSON data, inject it into the template, and write the output to _site/index.html.
+* Run build.py locally and verify the resulting output in your browser.
 
-Build an HTML dashboard template using Jinja2 syntax.
+## 1.3. General Exercises
 
-Write build.py to process the JSON data, inject it into the template, and write the output to _site/index.html.
-
-Run build.py locally and verify the resulting output in your browser.
-
-3. ### General Exercises
-
-   Inspect how Jinja2 renders loops:
+* Inspect how Jinja2 renders loops:
 
 ```Python
 from jinja2 import Template
@@ -103,24 +178,22 @@ template = Template("Rooms: {% for r in rooms %}{{ r }}, {% endfor %}")
 print(template.render(rooms=["Studio A", "Studio B"]))
 ```
 
-Practice creating directories programmatically in Python using
+* Practice creating directories programmatically in Python using
 
 ```Python
 pathlib.Path("path/to/dir").mkdir(parents=True, exist_ok=True)
 ```
 
-4. ### Case-Specific Tasks
+## 1.4. Case-Specific Tasks
 
-   Task 1.1: Create data/studio.json containing at least two rooms (one active, one maintenance), instructors, and scheduled classes mapped to specific rooms.
+* Task 1.4.1: Create data/studio.json containing at least two rooms (one active, one maintenance), instructors, and scheduled classes mapped to specific rooms.
+* Task 1.4.2: Create templates/index.html with basic CSS and Jinja2 conditionals displaying a clear alert badge if a room is under maintenance.
+* Task 1.4.3: Create build.py which reads data/studio.json, compiles templates/index.html, and produces _site/index.html.
+* Task 1.4.4: Execute the script and verify that _site/index.html renders room statuses correctly.
 
-   Task 1.2: Create templates/index.html with basic CSS and Jinja2 conditionals displaying a clear alert badge if a room is under maintenance.
+## 1.5. Solutions
 
-   Task 1.3: Create build.py which reads data/studio.json, compiles templates/index.html, and produces _site/index.html.
-
-   Task 1.4: Execute the script and verify that _site/index.html renders room statuses correctly.
-5. ### Solutions
-
-   data/studio.json
+  data/studio.json
 
 ```JSON
 {
@@ -273,7 +346,7 @@ python build.py
 
 # Chapter 2: Code Quality & CI Safety Nets
 
-## 1. Theoretical Introduction
+## 2.1. Theoretical Introduction
 
 Continuous Integration (CI) operates on a fundamental contract: bad code or invalid state must never merge into the main branch or reach production.
 
@@ -287,44 +360,43 @@ To enforce this, pipelines implement two layers of automated gates:
 * **Domain Invariant Testing (Pytest)**: Tests that validate business rules and data models rather than code mechanics.
   In our yoga studio, if an administrator marks a room as `status: "maintenance"` while classes are scheduled in it, the build must fail immediately with actionable feedback.
 
-## 2. Steps to Complete the Chapter
+## 2.2. Steps to Complete the Chapter
 
 * Configure Ruff in `pyproject.toml` to establish rule sets and format parameters.
 * Execute Ruff checks and auto-formatting against the local codebase.
-* Construct a validation module` tests/test_studio.py` containing domain assertion rules for the studio.
+* Construct a validation module `tests/test_studio.py` containing domain assertion rules for the studio.
 * Run `pytest` locally to confirm test outcomes.
 
-## 3. General Exercises
+## 2.3. General Exercises
 
-1. Test Ruff's linter on any python script:
+* Test Ruff's linter on any python script:
 
 ```Bash
 ruff check .
 ```
 
-2. Run Ruff format check without modifying files:
+* Run Ruff format check without modifying files:
 
 ```Shell
 ruff format --check .
 ```
 
-3. Run Pytest with concise output:
+* Run Pytest with concise output:
 
 ```Shell
 pytest -v
 ```
 
-## 4. Case-Specific Tasks
+## 2.4. Case-Specific Tasks
 
-* **Task 2.1**: Create` pyproject.toml` in your project root with Ruff configuration enabling core (`E, F`), bugbear (`B`), and import sorting (`I`).
-* **Task 2.2:** Write `tests/test_studio.py` verifying two critical business rules:
-
-  * No class can be assigned to a room currently set to ` maintenance`.
+* **Task 2.4.1**: Create `pyproject.toml` in your project root with Ruff configuration enabling core (`E, F`), bugbear (`B`), and import sorting (`I`).
+* **Task 2.4.2:** Write `tests/test_studio.py` verifying two critical business rules:
+  * No class can be assigned to a room currently set to `maintenance`.
   * Registered attendees for a class cannot exceed the room's maximum capacity.
-* **Task 2.3**: Run `ruff check .` and `ruff format .` to format all code. (use the `--fix` option if needed)
-* **Task 2.4**: Run `pytest` to confirm all validation checks pass.
+* **Task 2.4.3**: Run `ruff check .` and `ruff format .` to format all code. (use the `--fix` option if needed)
+* **Task 2.4.4**: Run `pytest` to confirm all validation checks pass.
 
-## 5. Solutions
+## 2.5. Solutions
 
 ```TOML
 pyproject.toml
@@ -394,11 +466,11 @@ All tests should pass.
 
 # Chapter 3: Workflow Anatomy & Automated Quality Gates
 
-## 1. Theoretical Introduction
+## 3.1. Theoretical Introduction
 
 A **GitHub Actions Workflow** is an automated, event-driven procedure defined as a YAML file inside the `.github/workflows/` directory of your repository.
 
-```
+```shell
 ┌────────────────────────────────────────────────────────┐
 │ Workflow: ci.yml                                       │
 │ Trigger: push / pull_request on branch 'main'          │
@@ -412,7 +484,7 @@ A **GitHub Actions Workflow** is an automated, event-driven procedure defined as
 └────────────────────────────────────────────────────────┘
 ```
 
-#### Core Components of the YAML Schema:
+### Core Components of the YAML Schema
 
 * **`name`** : Descriptive display identifier in the GitHub Actions dashboard.
 * **`on`** : Event triggers (`push`, `pull_request`, `workflow_dispatch`, etc.).
@@ -420,36 +492,34 @@ A **GitHub Actions Workflow** is an automated, event-driven procedure defined as
 * **`runs-on`** : Target OS image (e.g., `ubuntu-latest`, `windows-latest`, `macos-latest`).
 * **`steps`** : Linear sequence of tasks within a job. Can execute shell commands (`run:`) or reusable marketplace actions (`uses:`).
 
+## 3.2. Steps to Complete the Chapter
 
-## 2. Steps to Complete the Chapter
+* Create the workflow directory hierarchy: `.github/workflows/.`
+* Construct `ci.yml` targeting `push` and `pull_request` triggers on `main`.
+* Add steps to check out code, install the Python environment, run Ruff, and execute Pytest.
+* Commit and push changes to GitHub to watch the workflow execute in the Actions tab.
 
-1. Create the workflow directory hierarchy: `.github/workflows/.`
-2. Construct `ci.yml` targeting `push` and `pull_request` triggers on `main`.
-3. Add steps to check out code, install the Python environment, run Ruff, and execute Pytest.
-4. Commit and push changes to GitHub to watch the workflow execute in the Actions tab.
+## 3.3. General Exercises
 
-## 3. General Exercises
+* Review YAML syntax rules:
+  * Two spaces for indentation (no tabs).
+  * Key-value pairs (`key: value`).
+  * Array items denoted by `-`.
+* Explore GitHub Actions step naming: Every step should have a clear, descriptive `name:` property to make debugging failed runs intuitive.
 
-1. Review YAML syntax rules:
-   1. Two spaces for indentation (no tabs).
-   2. Key-value pairs (`key: value`).
-   3. Array items denoted by `- `.
-2. Explore GitHub Actions step naming: Every step should have a clear, descriptive `name:` property to make debugging failed runs intuitive.
+## 3.4. Case-Specific Tasks
 
-## 4. Case-Specific Tasks
+* **Task 3.4.1:** Create `.github/workflows/ci.yml`.
+* **Task 3.4.2:** Define a job `lint-and-test` targeting `ubuntu-latest`.
+* **Task 3.4.3:** Use `actions/checkout@v4` and `actions/setup-python@v5` with Python version `3.11` and pip caching enabled (`cache: 'pip'`).
+* **Task 3.4.4:** Add steps that run `ruff check .`, `ruff format --check .`, and `pytest`.
+* **Task 3.4.5:** Commit all project files to Git, link your remote GitHub repository, push to `main`, and inspect the Actions tab.
 
-* **Task 3.1:** Create `.github/workflows/ci.yml`.
-* **Task 3.2:** Define a job `lint-and-test` targeting `ubuntu-latest`.
-* **Task 3.3:** Use `actions/checkout@v4` and `actions/setup-python@v5` with Python version `3.11` and pip caching enabled (`cache: 'pip'`).
-* **Task 3.4:** Add steps that run `ruff check .`, `ruff format --check .`, and `pytest`.
-* **Task 3.5:** Commit all project files to Git, link your remote GitHub repository, push to `main`, and inspect the Actions tab.
-
-## 5. Solutions
+## 3.5. Solutions
 
 Update the folder and file structure in the local repo to include the ci.yml file
 
 ```Shell
-
 .github/workflows/ci.yml
 
 YAML
@@ -503,7 +573,7 @@ Navigate to `[https://github.com/](https://github.com/)<USER_NAME>/prana-flow-st
 
 # Chapter 4: Artifact Compilation in the Cloud
 
-## 1. Theoretical introduction
+## 4.1. Theoretical introduction
 
 CI pipelines do more than test; they also compile, build, and package software. In static site generation, this means executing `python build.py` directly inside the cloud runner to produce the production-ready `_site/` directory.
 
@@ -517,16 +587,16 @@ However, jobs in GitHub Actions run inside ephemeral virtual machines. Once a jo
 
 By decoupling the **build** step from the **deploy** step, you ensure that if tests fail or the build crashes, no deployment occurs.
 
-## 2. Steps to Complete the Chapter
+## 4.2. Steps to Complete the Chapter
 
-1. Separate the workflow into distinct, sequential stages: a quality gate job followed by a build job.
-2. Link the build job using the `needs:` keyword so it only runs if the quality checks pass.
-3. Execute `python build.py` to compile the site inside the cloud runner.
-4. Upload the resulting `_site` directory using GitHub's specialized `actions/upload-pages-artifact@v3`.
+* Separate the workflow into distinct, sequential stages: a quality gate job followed by a build job.
+* Link the build job using the `needs:` keyword so it only runs if the quality checks pass.
+* Execute `python build.py` to compile the site inside the cloud runner.
+* Upload the resulting `_site` directory using GitHub's specialized `actions/upload-pages-artifact@v3`.
 
-## 3. General Exercises
+## 4.3. General Exercises
 
-1. Understand job dependency syntax:
+* Understand job dependency syntax:
 
 ```YAML
 job-a:
@@ -538,16 +608,16 @@ job-b:
   # runs only if job-a succeeds
 ```
 
-2. Understand what `actions/upload-pages-artifact` does: it packages a specified directory into a compressed `github-pages` tarball artifactz specifically prepared for GitHub Pages hosting.
+* Understand what `actions/upload-pages-artifact` does: it packages a specified directory into a compressed `github-pages` tarball artifactz specifically prepared for GitHub Pages hosting.
 
-## 4. Case-Specific Tasks
+## 4.4. Case-Specific Tasks
 
-* **Task 4.1:** Update `.github/workflows/ci.yml` (renaming it or structuring it as `deploy.yml`) to add a second job named `build`.
-* **Task 4.2:** Establish a dependency using `needs: lint-and-test`.
-* **Task 4.3:** Add steps to check out code, set up Python, install `jinja2`, and run `python build.py`.
-* **Task 4.4:** Use `actions/upload-pages-artifact@v3` with `path: '_site'` to store the generated site.
+* **Task 4.4.1:** Update `.github/workflows/ci.yml` (renaming it or structuring it as `deploy.yml`) to add a second job named `build`.
+* **Task 4.4.2:** Establish a dependency using `needs: lint-and-test`.
+* **Task 4.4.3:** Add steps to check out code, set up Python, install `jinja2`, and run `python build.py`.
+* **Task 4.4.4:** Use `actions/upload-pages-artifact@v3` with `path: '_site'` to store the generated site.
 
-## 5. Solutions
+## 4.5. Solutions
 
 **Updated** `.github/workflows/deploy.yml`
 
@@ -617,4 +687,171 @@ jobs:
         uses: actions/upload-pages-artifact@v3
         with:
           path: "_site"
+```
+
+# 5. Continuous Deployment to GitHub Pages
+
+## 5.1. Theoretical Introduction
+
+Continuous Deployment (CD) is the phase where tested, built artifacts are published to production infrastructure without manual human intervention.
+
+Historically, deploying to GitHub Pages required pushing HTML files to a dedicated `gh-pages` branch. Modern GitHub Pages uses direct, branchless deployments driven by OpenID Connect (OIDC) authentication and granular repository permissions.
+
+```Bash
+[ Push to main ] ──> [ Tests Pass ] ──> [ HTML Compiled ] ──> [ actions/deploy-pages ] ──> Live URL
+```
+
+### GitHub Pages Security & Concurrency
+
+* **Permissions:** Deployment workflows require `pages: write` (to update your site) and `id-token: write` (to authenticate via OIDC).
+* **Concurrency:** The `concurrency` block ensures that if multiple commits are pushed in quick succession, older deployments are canceled in favor of the newest build, preventing race conditions.
+
+## 5.2. Steps to Complete the Chapter
+
+* Configure GitHub Pages settings in your repository to use **GitHub Actions** as the build source.
+* Add the final `deploy` job using `actions/deploy-pages@v4`.
+* Push to `main` and verify the live website URL.
+* **The Practical Simulation:** Edit `data/studio.json` locally to mark a room with active classes as `maintenance`. Push the change and watch CI stop the bad update before it deploys.
+
+## 5.3. General Exercises
+
+* Locate GitHub repository settings: Settings -> Pages -> Build and deployment -> Source.
+* Understand the function of concurrency groups:
+
+```YAML
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+```
+
+## 5.4. Case-Specific Tasks
+
+* Task 5.4.1: On GitHub, go to Settings > Pages and set Source to GitHub Actions.
+* Task 5.4.2: Add the deploy job to .github/workflows/deploy.yml with the proper environment and concurrency settings.
+* Task 5.4.3: Commit, push, and confirm your site is live at https://<YOUR-USERNAME></your>.github.io/prana-flow-studio/.
+* Task 5.4.4 (The Real-World Test):
+  * Open data/studio.json.
+  * Change Lotus Room status from "active" to "maintenance". Note that classes are still scheduled there.
+  * Commit and push:
+
+    ```shell
+    git commit -am "ops: mark Lotus Room as under maintenance"
+    git push
+    ```
+  * Inspect the Actions tab: verify that the pipeline fails during the Pytest step, halting the workflow so the broken schedule never reaches your live site.
+  * Fix the conflict by moving the classes to an active room or canceling them, push the fix, and watch the pipeline turn green and deploy.
+
+## 5.5. Solutions
+
+Complete `.github/workflow/deploy.yml`:
+
+```YAML
+name: CI/CD Pipeline - Prana Flow Studio
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+# Permissions required for GitHub Pages deployment
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install ruff pytest jinja2
+
+      - name: Run Ruff Linter
+        run: ruff check .
+
+      - name: Check Code Formatting
+        run: ruff format --check .
+
+      - name: Run Domain Validation Tests
+        run: pytest -v
+
+  build:
+    needs: lint-and-test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install build dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install jinja2
+
+      - name: Build static site
+        run: python build.py
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: "_site"
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+```
+
+### Simulating the Broken Change & Failure
+
+In `data/studio.json`:
+
+```JSON
+{ 
+  "id": "lotus-room",
+  "name": "Lotus Room",
+  "capacity": 25,
+  "status": "maintenance"
+}
+```
+
+Push the commit:
+
+```Shell
+git commit -am "test: simulate invalid room maintenance change"
+git push
+```
+
+The GitHub Actions UI will display:
+
+```
+FAILED tests/test_studio.py::test_no_classes_in_maintenance_rooms - AssertionError: 
+Business rule violation: Class 'Sunrise Vinyasa' is scheduled in room 'lotus-room' which is currently under maintenance!
 ```
